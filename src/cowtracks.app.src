@@ -1,0 +1,11 @@
+{application, cowtracks,
+ [
+  {description, "Cowboy request tracker"},
+  {vsn, "1.0"},
+  {registered, []},
+  {mod, { cowtracks_app, []}},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]}
+ ]}.
