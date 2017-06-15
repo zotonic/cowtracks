@@ -1,3 +1,4 @@
+
 -module(cowtracks_stream).
 -author("Maas-Maarten Zeeman <mmzeeman@xs4all.nl>").
 
@@ -41,17 +42,18 @@ data(StreamID, IsFin, Data, #state{next = Next} = State) ->
 -spec info(cowboy_stream:streamid(), any(), {Handler, State} | undefined)
         -> {cowboy_stream:commands(), {Handler, State} | undefined}
         when Handler::module(), State::state().
-info(StreamID, Response, #state{next = Next, start_time = StartTime, request_ref = Ref} = State) ->
+info(StreamID, Response, #state{next = Next, request_ref = Ref} = State) ->
     case Response of
-        {response, Status, Headers, _Body} -> track_response(Status, Headers, Ref, StartTime);
-        {headers, Status, Headers} -> track_headers(Status, Headers, Ref, StartTime);
+        {response, Status, Headers, _Body} -> track_response(Ref, Status, Headers);
+        {headers, Status, Headers} -> track_headers(Ref, Status, Headers);
         _ -> ignore
     end,
     {Commands, Next1} = cowboy_stream:info(StreamID, Response, Next),
     {Commands, State#state{next = Next1}}.
 
 -spec terminate(cowboy_stream:streamid(), cowboy_stream:reason(), {module(), state()} | undefined) -> ok.
-terminate(StreamID, Reason, #state{next = Next}) ->
+terminate(StreamID, Reason, #state{request_ref = Ref, next = Next}) ->
+    track_done(Ref),
     cowboy_stream:terminate(StreamID, Reason, Next).
 
 -spec early_error(cowboy_stream:streamid(), cowboy_stream:reason(), cowboy_stream:partial_req(), Resp, cowboy:opts())
@@ -65,9 +67,13 @@ early_error(StreamID, Reason, PartialReq, Resp, Opts) ->
 %% Track
 %%
 
-track_response(Status, Headers, Ref, StartTime) ->
+track_response(_Ref, _Status, _Headers) ->
     ok.
 
-track_headers(Status, Headers, Ref, StartTime) ->
+track_headers(_Ref, _Status, _Headers) ->
     ok.
+
+track_done(_Ref) ->
+    ok.
+
 
