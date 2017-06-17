@@ -92,7 +92,7 @@ code_change(_OldVsn, State, _Extra) ->
 % @doc Flush the buffer upto the given value.
 %
 flush(Upto, Handler, HandlerState) ->
-    flush(Upto, Handler, HandlerState, ets:first(Name)).
+    flush(Upto, Handler, HandlerState, ets:first(?MODULE)).
 
 flush(_Upto, _Handler, _HandlerState, '$end_of_table') ->
     ok;
