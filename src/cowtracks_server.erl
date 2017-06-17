@@ -7,7 +7,8 @@
 -export([
     start_link/0, start_link/2,
     stop/0,
-    flush/0
+    flush/0,
+    push/1
 ]).
 
 %% gen_server callbacks
