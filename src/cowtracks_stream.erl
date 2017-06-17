@@ -28,6 +28,7 @@ init(StreamID, Req, Opts) ->
     StartTime = erlang:monotonic_time(microseconds),
     Ref = erlang:make_ref(),
     Req1 = Req#{cowtrack_ref => Ref},
+    cowtracks:track(Ref, {start, StartTime}),
     {Commands, Next} = cowboy_stream:init(StreamID, Req1, Opts),
     {Commands, #state{next = Next, start_time = StartTime, request_ref = Ref}}.
 
