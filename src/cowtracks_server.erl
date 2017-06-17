@@ -5,7 +5,7 @@
 -author("Maas-Maarten Zeeman <mmzeeman@xs4all.nl>").
 
 -export([
-    start_link/2,
+    start_link/0, start_link/2,
     stop/0,
     flush/0
 ]).
@@ -21,6 +21,10 @@
     handler_state
 }).
 
+start_link() ->
+    {ok, Handler} = application:get_env(cowtracks, handler),
+    {ok, Args} = application:get_env(cowtracks, args),
+    start_link(Handler, Args).
 
 start_link(Handler, Args) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Handler, Args], []).
@@ -44,6 +48,7 @@ init([Handler, Args]) ->
     % ets:insert(?MODULE, #counter{name=next}),
 
     {ok, Timeout, HandlerState} = Handler:init(self(), Args),
+
     erlang:send_after(Timeout, self(), flush),
 
     {ok, #state{handler=Handler, timeout=Timeout, handler_state=HandlerState}}.
