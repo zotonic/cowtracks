@@ -21,16 +21,13 @@
 %%      metadata for lager and set the relevant Context arguments.
 -spec execute(Req, Env) -> {ok, Req, Env} | {stop, Req}
     when Req::cowboy_req:req(), Env::cowboy_middleware:env().
-execute(#{cowtracks_ref := Ref}=Req, #{cowtracks_middlewares := Middlewares}=Env) ->
+execute(#{cowtracks_ref := Ref}=Req, #{cowtracks_middleware := Middlewares}=Env) ->
     execute_middleware(Ref, Req, Env, Middlewares).
 
 %%
 %%
 %%
 
-%% @todo
-%-spec execute(cowboy_req:req(), #state{}, cowboy_middleware:env(), [module()])
-%	-> ok.
 execute_middleware(_, _, _, []) ->
 	ok; %% @todo Maybe error reason should differ here and there.
 execute_middleware(Ref, Req, Env, [Middleware|Tail]) ->
