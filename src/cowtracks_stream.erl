@@ -15,8 +15,7 @@
 -record(state, {
     next :: any(),
 
-    request_ref :: reference(),
-    start_time :: integer()
+    request_ref :: reference()
 }).
 
 -type state() :: #state{}.
@@ -24,13 +23,13 @@
 -spec init(cowboy_stream:streamid(), cowboy_req:req(), cowboy:opts())
          -> {cowboy_stream:commands(), {module(), state()} | undefined}.
 init(StreamID, Req, Opts) ->
-    StartTime = erlang:monotonic_time(micro_seconds),
+    StartTime = t(),
     Ref = erlang:make_ref(),
     cowtracks:track(Ref, {start, StartTime}),
     Req1 = Req#{cowtracks_ref => Ref},
 
     {Commands, Next} = cowboy_stream:init(StreamID, Req1, Opts),
-    {Commands, #state{next = Next, start_time = StartTime, request_ref = Ref}}.
+    {Commands, #state{next = Next, request_ref = Ref}}.
 
 -spec data(cowboy_stream:streamid(), cowboy_stream:fin(), binary(), {Handler, State} | undefined)
         -> {cowboy_stream:commands(), {Handler, State} | undefined}
@@ -38,7 +37,6 @@ init(StreamID, Req, Opts) ->
 data(StreamID, IsFin, Data, #state{next = Next} = State) ->
     {Commands, Next1} = cowboy_stream:data(StreamID, IsFin, Data, Next),
     {Commands, State#state{next = Next1}}.
-
 
 -spec info(cowboy_stream:streamid(), any(), {Handler, State} | undefined)
         -> {cowboy_stream:commands(), {Handler, State} | undefined}
@@ -65,17 +63,17 @@ early_error(StreamID, Reason, PartialReq, Resp, Opts) ->
 
 
 %%
-%% Helpers 
+%% Helpers
 %%
 
-track_response(Ref, Status, Headers) -> 
+track_response(Ref, Status, Headers) ->
     cowtracks:track(Ref, {response, Status, Headers, t()}).
 
-track_headers(Ref, Status, Headers) -> 
+track_headers(Ref, Status, Headers) ->
     cowtracks:track(Ref, {headers, Status, Headers, t()}).
 
 track_done(Ref) ->
     cowtracks:track(Ref, {done, t()}).
 
-t() -> 
+t() ->
     erlang:monotonic_time(micro_seconds).
