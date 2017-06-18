@@ -4,7 +4,6 @@
 
 -behavior(cowboy_stream).
 
-
 -export([
     init/3,
     data/4,
@@ -66,16 +65,17 @@ early_error(StreamID, Reason, PartialReq, Resp, Opts) ->
 
 
 %%
-%% Track
+%% Helpers 
 %%
 
-track_response(_Ref, _Status, _Headers) ->
-    ok.
+track_response(Ref, Status, Headers) -> 
+    cowtracks:track(Ref, {response, Status, Headers, t()}).
 
-track_headers(_Ref, _Status, _Headers) ->
-    ok.
+track_headers(Ref, Status, Headers) -> 
+    cowtracks:track(Ref, {headers, Status, Headers, t()}).
 
-track_done(_Ref) ->
-    ok.
+track_done(Ref) ->
+    cowtracks:track(Ref, {done, t()}).
 
-
+t() -> 
+    erlang:monotonic_time(micro_seconds).
