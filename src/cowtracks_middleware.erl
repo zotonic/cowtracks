@@ -17,8 +17,7 @@
 ]).
 
 
-%% @doc Call cowmachine to handle the request with the given controller. Prepare the
-%%      metadata for lager and set the relevant Context arguments.
+%% @doc Call cowmachine to handle the request with the given controller.
 -spec execute(Req, Env) -> {ok, Req, Env} | {stop, Req}
     when Req::cowboy_req:req(), Env::cowboy_middleware:env().
 execute(#{cowtracks_ref := Ref}=Req, #{cowtracks_middleware := Middlewares}=Env) ->
@@ -33,7 +32,7 @@ execute_middleware(_, _, _, []) ->
 execute_middleware(Ref, Req, Env, [Middleware|Tail]) ->
     Start = t(),
     R = Middleware:execute(Req, Env),
-    Duration = Start - t(),
+    Duration = t() - Start,
     track(Ref, Middleware, R, Duration),
     handle_middleware(Ref, Env, R, Tail).
 
@@ -52,5 +51,4 @@ track(Ref, Middleware, {ok, Req, Env}, Duration) ->
 track(_Ref, _Middleware, _, _Duration) ->
     ok.
 
-t() ->
-    erlang:monotonic_time(micro_seconds).
+t() -> erlang:monotonic_time(micro_seconds).

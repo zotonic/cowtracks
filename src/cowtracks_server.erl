@@ -35,6 +35,11 @@
 start_link() ->
     {ok, Handler} = application:get_env(cowtracks, handler),
     {ok, Args} = application:get_env(cowtracks, args),
+
+    % Put the handlermodule and the arguments in mochiglobal so the handler can be
+    % used to filter what items are tracked and send to the table.
+    mochiglobal:put(cowtracks_handler_args, {Handler, Args}),
+
     start_link(Handler, Args).
 
 start_link(Handler, Args) ->
@@ -43,7 +48,11 @@ start_link(Handler, Args) ->
 %% @doc Push a message to the server, when the server is flushed the pushed messages
 %% are handled in-order.
 push(Msg) ->
-    ets:insert(?MODULE, #entry{count=get_next(), value=Msg}).
+    Info = case mochiglobal:get(cowtracks_handler_args) of
+        {Handler, Args} -> Handler:handle_track(Msg, Args);
+        _ -> Msg
+    end,
+    ets:insert(?MODULE, #entry{count=get_next(), value=Info}).
 
 %% @doc Stop the worker, all pending work will be lost.
 stop() ->
@@ -95,19 +104,23 @@ code_change(_OldVsn, State, _Extra) ->
 flush(Upto, Handler, HandlerState) ->
     flush(Upto, Handler, HandlerState, ets:first(?MODULE)).
 
-flush(_Upto, _Handler, _HandlerState, '$end_of_table') ->
-    ok;
+flush(_Upto, _Handler, HandlerState, '$end_of_table') -> {ok, HandlerState};
 flush(Upto, Handler, HandlerState, Key) when is_integer(Key) andalso Key =< Upto ->
     [#entry{count=Count, value=Value}] = ets:lookup(?MODULE, Key),
-    true = ets:delete(?MODULE, Key),
-    Handler:handle_value(self(), Count, Value, HandlerState),
-    flush(Upto, Handler, HandlerState, ets:next(?MODULE, Key));
+    HandlerState1 = case Handler:handle_value(self(), Count, Value, HandlerState) of
+        {delete, S} ->
+            %% delete the item from the ets table.
+            true = ets:delete(?MODULE, Key),
+            S;
+        {keep, S} ->
+            %% Keep the item. The request is still running.
+            S
+    end,
+    flush(Upto, Handler, HandlerState1, ets:next(?MODULE, Key));
 flush(Upto, Handler, HandlerState, Atom) when is_atom(Atom) ->
-    % Skip over counters
+    % Skip this is a counter 
     flush(Upto, Handler, HandlerState, ets:next(?MODULE, Atom));
-flush(_Upto, _Handler, _HandlerState, _Key) ->
-    ok.
-
+flush(_Upto, _Handler, HandlerState, _Key) -> {ok, HandlerState}.
 
 % @doc Return a sequence number for the next element
 %
